@@ -62,28 +62,29 @@ def assemble_final_video():
     print("🏗️ Stitching Audio, Video, and Captions with FFmpeg...")
     os.makedirs("output", exist_ok=True)
     
-    # Locate the FFmpeg engine we dropped in the main folder
-    ffmpeg_exe = os.path.abspath("ffmpeg.exe")
-    if not os.path.exists(ffmpeg_exe):
-        ffmpeg_exe = "ffmpeg" # Fallback to system path
+    # 👈 THE FOUR BACKSLASH TRICK:
+    # Converts C:\Users to C:/Users, then converts the colon to \\: 
+    # This prevents FFmpeg from ripping the path in half!
+    abs_sub_path = os.path.abspath(OUTPUT_SUBS)
+    ff_sub_path = abs_sub_path.replace("\\", "/").replace(":", "\\\\:")
     
-    # 👈 THE CWD CHEAT CODE
-    # Because we run this FROM the 'temp' folder, there are NO paths in the subtitle filter!
+    # Use local ffmpeg.exe if we dropped it in the folder, else use system ffmpeg
+    ffmpeg_exe = "ffmpeg.exe" if os.path.exists("ffmpeg.exe") else "ffmpeg"
+    
     ffmpeg_cmd = [
         ffmpeg_exe, "-y", 
         "-framerate", str(FPS),
-        "-i", "frames/%04d.png", 
-        "-i", "voice_01.mp3", 
-        "-vf", "subtitles=subs_01.srt:force_style='Fontname=Arial,Fontsize=24,PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,BorderStyle=1,Outline=2'", 
+        "-i", "temp/frames/%04d.png", 
+        "-i", OUTPUT_AUDIO, 
+        "-vf", f"subtitles={ff_sub_path}:force_style='Fontname=Arial,Fontsize=24,PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,BorderStyle=1,Outline=2'", 
         "-c:v", "libx264", 
         "-pix_fmt", "yuv420p", 
         "-c:a", "aac", 
         "-shortest",
-        "../output/final_video.mp4" # Output gets pushed UP one level into /output
+        "output/final_video.mp4"
     ]
     
-    # Execute the command specifically inside the "temp" directory
-    subprocess.run(ffmpeg_cmd, cwd="temp", check=True)
+    subprocess.run(ffmpeg_cmd, check=True)
     
     print("-----------------------------------------------------")
     print("🎉 BOOM! FINAL VIDEO SAVED TO: output/final_video.mp4")
