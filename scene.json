@@ -1,0 +1,17 @@
+{
+  "project_metadata": {
+    "title": "Test_Video_01",
+    "fps": 30,
+    "resolution": [1080, 1920]
+  },
+  "content": {
+    "script": "This is a test of the automated media engine. Voice leads, visuals follow.",
+    "audio_path": "temp/voice_01.wav",
+    "duration_seconds": 0.0,
+    "end_frame": 0
+  },
+  "visuals": {
+    "template": "basic_vertical.blend",
+    "camera_movement": "slow_zoom"
+  }
+}
