@@ -7,7 +7,6 @@ def build_scene():
     print("⚙️ INITIATING BLENDER AETHER ENGINE")
     print("-----------------------------------")
 
-    # 1. Load the Source of Truth (scene.json)
     json_path = os.path.abspath("scene.json")
     try:
         with open(json_path, 'r') as f:
@@ -16,37 +15,34 @@ def build_scene():
         print(f"❌ Failed to load scene.json: {e}")
         return
 
-    # Extract data
     audio_path = data['content']['audio_path']
     end_frame = data['content']['end_frame']
     fps = data['project_metadata']['fps']
     res_x = data['project_metadata']['resolution'][0]
     res_y = data['project_metadata']['resolution'][1]
 
-    # 2. Configure the Master Scene Settings
     scene = bpy.context.scene
     scene.render.resolution_x = res_x
     scene.render.resolution_y = res_y
     scene.render.resolution_percentage = 100
     scene.render.fps = fps
-    
     scene.frame_start = 1
     scene.frame_end = end_frame
+    
+    # 👈 NEW: Set ultra-fast render engine for testing
+    scene.render.engine = 'BLENDER_WORKBENCH'
 
     print(f"📐 Resolution set to: {res_x}x{res_y}")
     print(f"⏱️ Timeline locked: 1 to {end_frame} frames ({fps} FPS)")
 
-    # 3. Inject Audio into Blender's Video Sequence Editor (VSE)
     if not scene.sequence_editor:
         scene.sequence_editor_create()
 
-    # FIX for Blender 5.1 API: 'sequences' was renamed to 'strips'
     for strip in list(scene.sequence_editor.strips):
         scene.sequence_editor.strips.remove(strip)
 
     abs_audio_path = os.path.abspath(audio_path)
     if os.path.exists(abs_audio_path):
-        # Add the audio track using the updated 5.1 signature
         scene.sequence_editor.strips.new_sound(
             name="Aether_Voice", 
             filepath=abs_audio_path, 
@@ -54,10 +50,13 @@ def build_scene():
             frame_start=1
         )
         print(f"🔊 Audio synced to timeline: {audio_path}")
-    else:
-        print(f"⚠️ WARNING: Audio file not found at {abs_audio_path}")
 
-    # 4. Save the configured project to the temp folder
+    # 👈 NEW: Configure MP4 Output settings
+    scene.render.image_settings.file_format = 'FFMPEG'
+    scene.render.ffmpeg.format = 'MPEG4'
+    scene.render.ffmpeg.codec = 'H264'
+    scene.render.filepath = os.path.abspath("temp/raw_render.mp4")
+
     output_blend = os.path.abspath("temp/automated_scene.blend")
     bpy.ops.wm.save_as_mainfile(filepath=output_blend)
     print(f"✅ Scene successfully compiled and saved to: {output_blend}")

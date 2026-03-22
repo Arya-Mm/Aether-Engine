@@ -9,10 +9,10 @@ from mutagen.mp3 import MP3
 # --- CONFIGURATION ---
 VOICE = "en-US-ChristopherNeural"
 OUTPUT_AUDIO = "temp/voice_01.mp3"
-OUTPUT_SUBS = "temp/subs_01.srt" # 👈 UPGRADED TO SRT
+OUTPUT_SUBS = "temp/subs_01.srt"
 SCRIPT_TEXT = "This is a test of the automated media engine. Voice leads, visuals follow. The system is online."
 FPS = 30
-BLENDER_PATH = r"C:\Program Files\Blender Foundation\Blender 5.1\blender.exe" # Your exact path
+BLENDER_PATH = r"C:\Program Files\Blender Foundation\Blender 5.1\blender.exe"
 
 async def generate_audio_and_subs():
     print(f"🎙️ Generating voiceover and subtitles...")
@@ -24,22 +24,17 @@ async def generate_audio_and_subs():
             if chunk["type"] == "audio":
                 file.write(chunk["data"])
             elif chunk["type"] == "WordBoundary":
-                # 👈 NEW API: Let the library do the math automatically
                 submaker.feed(chunk)
                 
     with open(OUTPUT_SUBS, "w", encoding="utf-8") as file:
-        # 👈 NEW API: Export directly to SRT
         file.write(submaker.get_srt())
         
-    print(f"✅ Audio saved to {OUTPUT_AUDIO}")
-    print(f"✅ Subtitles saved to {OUTPUT_SUBS}")
+    print(f"✅ Audio and Subtitles generated.")
 
 def update_scene_json(audio_path):
     audio = MP3(audio_path)
     duration = audio.info.length
     total_frames = math.ceil(duration * FPS)
-    
-    print(f"⏱️ Duration: {duration:.2f}s | Frames: {total_frames}")
     
     with open('scene.json', 'r') as f:
         scene_data = json.load(f)
@@ -51,24 +46,48 @@ def update_scene_json(audio_path):
     
     with open('scene.json', 'w') as f:
         json.dump(scene_data, f, indent=4)
-        
-    print("✅ scene.json updated!")
 
 def run_blender_engine():
-    print("🚀 Firing up Blender Engine...")
+    print("🚀 Configuring Blender Scene...")
     subprocess.run([BLENDER_PATH, "-b", "-P", "engine.py"])
+    
+    print("🎥 Rendering Raw Video (This might take a few seconds)...")
+    # Tell Blender to render the animation (-a) in the background
+    subprocess.run([BLENDER_PATH, "-b", "temp/automated_scene.blend", "-a"])
+
+def assemble_final_video():
+    print("🏗️ Stitching Audio, Video, and Captions with FFmpeg...")
+    
+    # Ensure output folder exists
+    os.makedirs("output", exist_ok=True)
+    
+    # FFmpeg paths need forward slashes for the subtitle filter on Windows
+    sub_path = "temp/subs_01.srt".replace("\\", "/")
+    
+    # The FFmpeg command: Combine raw video + audio + burn subtitles
+    ffmpeg_cmd = [
+        "ffmpeg", "-y", 
+        "-i", "temp/raw_render.mp4", 
+        "-i", OUTPUT_AUDIO, 
+        "-vf", f"subtitles={sub_path}:force_style='Fontname=Arial,Fontsize=24,PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,BorderStyle=1,Outline=2'", 
+        "-c:v", "libx264", 
+        "-c:a", "aac", 
+        "-map", "0:v:0", "-map", "1:a:0", 
+        "output/final_video.mp4"
+    ]
+    
+    try:
+        subprocess.run(ffmpeg_cmd, check=True)
+        print("🎉 BOOM! FINAL VIDEO SAVED TO: output/final_video.mp4")
+    except FileNotFoundError:
+        print("❌ ERROR: FFmpeg is not installed or not in your system PATH.")
 
 async def main():
     os.makedirs("temp", exist_ok=True)
-    
-    # 1. Generate Assets
     await generate_audio_and_subs()
-    
-    # 2. Sync Math
     update_scene_json(OUTPUT_AUDIO)
-    
-    # 3. Build Visuals
     run_blender_engine()
+    assemble_final_video()
 
 if __name__ == "__main__":
     asyncio.run(main())
