@@ -9,7 +9,7 @@ from mutagen.mp3 import MP3
 # --- CONFIGURATION ---
 VOICE = "en-US-ChristopherNeural"
 OUTPUT_AUDIO = "temp/voice_01.mp3"
-OUTPUT_SUBS = "temp/subs_01.vtt" # WebVTT subtitle format
+OUTPUT_SUBS = "temp/subs_01.srt" # 👈 UPGRADED TO SRT
 SCRIPT_TEXT = "This is a test of the automated media engine. Voice leads, visuals follow. The system is online."
 FPS = 30
 BLENDER_PATH = r"C:\Program Files\Blender Foundation\Blender 5.1\blender.exe" # Your exact path
@@ -24,11 +24,12 @@ async def generate_audio_and_subs():
             if chunk["type"] == "audio":
                 file.write(chunk["data"])
             elif chunk["type"] == "WordBoundary":
-                # This captures the exact millisecond each word is spoken!
-                submaker.create_sub((chunk["offset"], chunk["duration"]), chunk["text"])
+                # 👈 NEW API: Let the library do the math automatically
+                submaker.feed(chunk)
                 
     with open(OUTPUT_SUBS, "w", encoding="utf-8") as file:
-        file.write(submaker.generate_subs())
+        # 👈 NEW API: Export directly to SRT
+        file.write(submaker.get_srt())
         
     print(f"✅ Audio saved to {OUTPUT_AUDIO}")
     print(f"✅ Subtitles saved to {OUTPUT_SUBS}")
@@ -55,7 +56,6 @@ def update_scene_json(audio_path):
 
 def run_blender_engine():
     print("🚀 Firing up Blender Engine...")
-    # This automatically runs the command you were typing manually
     subprocess.run([BLENDER_PATH, "-b", "-P", "engine.py"])
 
 async def main():
