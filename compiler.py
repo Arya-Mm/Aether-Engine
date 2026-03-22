@@ -48,6 +48,11 @@ def update_scene_json(audio_path):
         json.dump(scene_data, f, indent=4)
 
 def run_blender_engine():
+    # Optimization: Skip rendering if we already have 262 frames from the last run!
+    if os.path.exists("temp/frames/0262.png"):
+        print("⏩ Frames already exist. Skipping 3D render to save time...")
+        return
+
     print("🚀 Configuring Blender Scene...")
     subprocess.run([BLENDER_PATH, "-b", "-P", "engine.py"])
     
@@ -58,15 +63,16 @@ def assemble_final_video():
     print("🏗️ Stitching Audio, Video, and Captions with FFmpeg...")
     os.makedirs("output", exist_ok=True)
     
-    sub_path = "temp/subs_01.srt".replace("\\", "/")
+    # 👈 THE FIX: Escape the Windows drive letter colon for FFmpeg's Linux-based filter
+    abs_sub_path = os.path.abspath(OUTPUT_SUBS)
+    ff_sub_path = abs_sub_path.replace("\\", "/").replace(":", "\\:")
     
-    # 👈 UPGRADE: FFmpeg now builds the video from the PNG sequence
     ffmpeg_cmd = [
         "ffmpeg", "-y", 
         "-framerate", str(FPS),
         "-i", "temp/frames/%04d.png", 
         "-i", OUTPUT_AUDIO, 
-        "-vf", f"subtitles={sub_path}:force_style='Fontname=Arial,Fontsize=24,PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,BorderStyle=1,Outline=2'", 
+        "-vf", f"subtitles={ff_sub_path}:force_style='Fontname=Arial,Fontsize=24,PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,BorderStyle=1,Outline=2'", 
         "-c:v", "libx264", 
         "-pix_fmt", "yuv420p", 
         "-c:a", "aac", 
@@ -74,11 +80,10 @@ def assemble_final_video():
         "output/final_video.mp4"
     ]
     
-    try:
-        subprocess.run(ffmpeg_cmd, check=True)
-        print("🎉 BOOM! FINAL VIDEO SAVED TO: output/final_video.mp4")
-    except FileNotFoundError:
-        print("❌ ERROR: FFmpeg is not installed or not in your system PATH. Did you restart the terminal?")
+    subprocess.run(ffmpeg_cmd, check=True)
+    print("-----------------------------------------------------")
+    print("🎉 BOOM! FINAL VIDEO SAVED TO: output/final_video.mp4")
+    print("-----------------------------------------------------")
 
 async def main():
     os.makedirs("temp", exist_ok=True)
