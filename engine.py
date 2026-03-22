@@ -29,7 +29,6 @@ def build_scene():
     scene.frame_start = 1
     scene.frame_end = end_frame
     
-    # 👈 NEW: Set ultra-fast render engine for testing
     scene.render.engine = 'BLENDER_WORKBENCH'
 
     print(f"📐 Resolution set to: {res_x}x{res_y}")
@@ -51,11 +50,13 @@ def build_scene():
         )
         print(f"🔊 Audio synced to timeline: {audio_path}")
 
-    # 👈 NEW: Configure MP4 Output settings
-    scene.render.image_settings.file_format = 'FFMPEG'
-    scene.render.ffmpeg.format = 'MPEG4'
-    scene.render.ffmpeg.codec = 'H264'
-    scene.render.filepath = os.path.abspath("temp/raw_render.mp4")
+    # 👈 UPGRADE: Render as PNG Sequence (Industry Standard)
+    frames_dir = os.path.abspath("temp/frames/")
+    os.makedirs(frames_dir, exist_ok=True)
+    
+    scene.render.image_settings.file_format = 'PNG'
+    # This will save as temp/frames/0001.png, temp/frames/0002.png, etc.
+    scene.render.filepath = os.path.join(frames_dir, "")
 
     output_blend = os.path.abspath("temp/automated_scene.blend")
     bpy.ops.wm.save_as_mainfile(filepath=output_blend)

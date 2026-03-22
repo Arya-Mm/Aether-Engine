@@ -51,28 +51,26 @@ def run_blender_engine():
     print("🚀 Configuring Blender Scene...")
     subprocess.run([BLENDER_PATH, "-b", "-P", "engine.py"])
     
-    print("🎥 Rendering Raw Video (This might take a few seconds)...")
-    # Tell Blender to render the animation (-a) in the background
+    print("🎥 Rendering PNG Sequence (Bulletproof Method)...")
     subprocess.run([BLENDER_PATH, "-b", "temp/automated_scene.blend", "-a"])
 
 def assemble_final_video():
     print("🏗️ Stitching Audio, Video, and Captions with FFmpeg...")
-    
-    # Ensure output folder exists
     os.makedirs("output", exist_ok=True)
     
-    # FFmpeg paths need forward slashes for the subtitle filter on Windows
     sub_path = "temp/subs_01.srt".replace("\\", "/")
     
-    # The FFmpeg command: Combine raw video + audio + burn subtitles
+    # 👈 UPGRADE: FFmpeg now builds the video from the PNG sequence
     ffmpeg_cmd = [
         "ffmpeg", "-y", 
-        "-i", "temp/raw_render.mp4", 
+        "-framerate", str(FPS),
+        "-i", "temp/frames/%04d.png", 
         "-i", OUTPUT_AUDIO, 
         "-vf", f"subtitles={sub_path}:force_style='Fontname=Arial,Fontsize=24,PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,BorderStyle=1,Outline=2'", 
         "-c:v", "libx264", 
+        "-pix_fmt", "yuv420p", 
         "-c:a", "aac", 
-        "-map", "0:v:0", "-map", "1:a:0", 
+        "-shortest",
         "output/final_video.mp4"
     ]
     
@@ -80,7 +78,7 @@ def assemble_final_video():
         subprocess.run(ffmpeg_cmd, check=True)
         print("🎉 BOOM! FINAL VIDEO SAVED TO: output/final_video.mp4")
     except FileNotFoundError:
-        print("❌ ERROR: FFmpeg is not installed or not in your system PATH.")
+        print("❌ ERROR: FFmpeg is not installed or not in your system PATH. Did you restart the terminal?")
 
 async def main():
     os.makedirs("temp", exist_ok=True)
