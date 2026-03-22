@@ -1,0 +1,10 @@
+# Ignore temporary renders and audio
+temp/
+output/
+__pycache__/
+*.blend1
+*.log
+
+# Ignore large asset files if necessary
+assets/*.mp4
+assets/*.wav
