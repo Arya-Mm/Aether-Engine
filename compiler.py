@@ -4,7 +4,6 @@ import asyncio
 import edge_tts
 import math
 import subprocess
-import shutil # 👈 NEW: For the file bypass
 from mutagen.mp3 import MP3
 
 # --- CONFIGURATION ---
@@ -63,17 +62,27 @@ def assemble_final_video():
     print("🏗️ Stitching Audio, Video, and Captions with FFmpeg...")
     os.makedirs("output", exist_ok=True)
     
-    # 👈 THE ULTIMATE WINDOWS BYPASS:
-    # Copy the file to the root directory to avoid ALL slashes and colons
-    shutil.copy(OUTPUT_SUBS, "subs_bypass.srt")
+    # 👈 THE ULTIMATE BYPASS:
+    # 1. Format the absolute path to perfection for FFmpeg's internal parser
+    abs_sub_path = os.path.abspath(OUTPUT_SUBS)
+    ff_sub_path = abs_sub_path.replace("\\", "/").replace(":", "\\:")
     
+    # 2. Write the filter logic to a physical text file. This entirely skips 
+    # the Windows command-line escaping bugs.
+    filter_str = f"[0:v]subtitles={ff_sub_path}:force_style='Fontname=Arial,Fontsize=24,PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,BorderStyle=1,Outline=2'[vout]"
+    
+    with open("temp/filter.txt", "w", encoding="utf-8") as f:
+        f.write(filter_str)
+    
+    # 3. Tell FFmpeg to read the file we just created
     ffmpeg_cmd = [
         "ffmpeg", "-y", 
         "-framerate", str(FPS),
         "-i", "temp/frames/%04d.png", 
         "-i", OUTPUT_AUDIO, 
-        # Using the clean root file name
-        "-vf", "subtitles=subs_bypass.srt:force_style='Fontname=Arial,Fontsize=24,PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,BorderStyle=1,Outline=2'", 
+        "-filter_complex_script", "temp/filter.txt", 
+        "-map", "[vout]", 
+        "-map", "1:a:0", 
         "-c:v", "libx264", 
         "-pix_fmt", "yuv420p", 
         "-c:a", "aac", 
@@ -81,13 +90,8 @@ def assemble_final_video():
         "output/final_video.mp4"
     ]
     
-    # Run the stitch
     subprocess.run(ffmpeg_cmd, check=True)
     
-    # Clean up our temporary bypass file
-    if os.path.exists("subs_bypass.srt"):
-        os.remove("subs_bypass.srt")
-        
     print("-----------------------------------------------------")
     print("🎉 BOOM! FINAL VIDEO SAVED TO: output/final_video.mp4")
     print("-----------------------------------------------------")
