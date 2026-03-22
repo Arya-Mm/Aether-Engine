@@ -4,6 +4,7 @@ import asyncio
 import edge_tts
 import math
 import subprocess
+import shutil # 👈 NEW: For the file bypass
 from mutagen.mp3 import MP3
 
 # --- CONFIGURATION ---
@@ -48,7 +49,6 @@ def update_scene_json(audio_path):
         json.dump(scene_data, f, indent=4)
 
 def run_blender_engine():
-    # Optimization: Skip rendering if we already have 262 frames from the last run!
     if os.path.exists("temp/frames/0262.png"):
         print("⏩ Frames already exist. Skipping 3D render to save time...")
         return
@@ -56,23 +56,24 @@ def run_blender_engine():
     print("🚀 Configuring Blender Scene...")
     subprocess.run([BLENDER_PATH, "-b", "-P", "engine.py"])
     
-    print("🎥 Rendering PNG Sequence (Bulletproof Method)...")
+    print("🎥 Rendering PNG Sequence...")
     subprocess.run([BLENDER_PATH, "-b", "temp/automated_scene.blend", "-a"])
 
 def assemble_final_video():
     print("🏗️ Stitching Audio, Video, and Captions with FFmpeg...")
     os.makedirs("output", exist_ok=True)
     
-    # 👈 THE FIX: Escape the Windows drive letter colon for FFmpeg's Linux-based filter
-    abs_sub_path = os.path.abspath(OUTPUT_SUBS)
-    ff_sub_path = abs_sub_path.replace("\\", "/").replace(":", "\\:")
+    # 👈 THE ULTIMATE WINDOWS BYPASS:
+    # Copy the file to the root directory to avoid ALL slashes and colons
+    shutil.copy(OUTPUT_SUBS, "subs_bypass.srt")
     
     ffmpeg_cmd = [
         "ffmpeg", "-y", 
         "-framerate", str(FPS),
         "-i", "temp/frames/%04d.png", 
         "-i", OUTPUT_AUDIO, 
-        "-vf", f"subtitles={ff_sub_path}:force_style='Fontname=Arial,Fontsize=24,PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,BorderStyle=1,Outline=2'", 
+        # Using the clean root file name
+        "-vf", "subtitles=subs_bypass.srt:force_style='Fontname=Arial,Fontsize=24,PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,BorderStyle=1,Outline=2'", 
         "-c:v", "libx264", 
         "-pix_fmt", "yuv420p", 
         "-c:a", "aac", 
@@ -80,7 +81,13 @@ def assemble_final_video():
         "output/final_video.mp4"
     ]
     
+    # Run the stitch
     subprocess.run(ffmpeg_cmd, check=True)
+    
+    # Clean up our temporary bypass file
+    if os.path.exists("subs_bypass.srt"):
+        os.remove("subs_bypass.srt")
+        
     print("-----------------------------------------------------")
     print("🎉 BOOM! FINAL VIDEO SAVED TO: output/final_video.mp4")
     print("-----------------------------------------------------")
