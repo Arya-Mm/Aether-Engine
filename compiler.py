@@ -62,35 +62,28 @@ def assemble_final_video():
     print("🏗️ Stitching Audio, Video, and Captions with FFmpeg...")
     os.makedirs("output", exist_ok=True)
     
-    # 👈 THE ULTIMATE BYPASS:
-    # 1. Format the absolute path to perfection for FFmpeg's internal parser
-    abs_sub_path = os.path.abspath(OUTPUT_SUBS)
-    ff_sub_path = abs_sub_path.replace("\\", "/").replace(":", "\\:")
+    # Locate the FFmpeg engine we dropped in the main folder
+    ffmpeg_exe = os.path.abspath("ffmpeg.exe")
+    if not os.path.exists(ffmpeg_exe):
+        ffmpeg_exe = "ffmpeg" # Fallback to system path
     
-    # 2. Write the filter logic to a physical text file. This entirely skips 
-    # the Windows command-line escaping bugs.
-    filter_str = f"[0:v]subtitles={ff_sub_path}:force_style='Fontname=Arial,Fontsize=24,PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,BorderStyle=1,Outline=2'[vout]"
-    
-    with open("temp/filter.txt", "w", encoding="utf-8") as f:
-        f.write(filter_str)
-    
-    # 3. Tell FFmpeg to read the file we just created
+    # 👈 THE CWD CHEAT CODE
+    # Because we run this FROM the 'temp' folder, there are NO paths in the subtitle filter!
     ffmpeg_cmd = [
-        "ffmpeg", "-y", 
+        ffmpeg_exe, "-y", 
         "-framerate", str(FPS),
-        "-i", "temp/frames/%04d.png", 
-        "-i", OUTPUT_AUDIO, 
-        "-filter_complex_script", "temp/filter.txt", 
-        "-map", "[vout]", 
-        "-map", "1:a:0", 
+        "-i", "frames/%04d.png", 
+        "-i", "voice_01.mp3", 
+        "-vf", "subtitles=subs_01.srt:force_style='Fontname=Arial,Fontsize=24,PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,BorderStyle=1,Outline=2'", 
         "-c:v", "libx264", 
         "-pix_fmt", "yuv420p", 
         "-c:a", "aac", 
         "-shortest",
-        "output/final_video.mp4"
+        "../output/final_video.mp4" # Output gets pushed UP one level into /output
     ]
     
-    subprocess.run(ffmpeg_cmd, check=True)
+    # Execute the command specifically inside the "temp" directory
+    subprocess.run(ffmpeg_cmd, cwd="temp", check=True)
     
     print("-----------------------------------------------------")
     print("🎉 BOOM! FINAL VIDEO SAVED TO: output/final_video.mp4")
