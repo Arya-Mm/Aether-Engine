@@ -37,12 +37,11 @@ def build_scene():
     print(f"⏱️ Timeline locked: 1 to {end_frame} frames ({fps} FPS)")
 
     # 3. Inject Audio into Blender's Video Sequence Editor (VSE)
-    # This ensures the final render actually has the voiceover attached
     if not scene.sequence_editor:
         scene.sequence_editor_create()
 
-    # Clear old sequences to prevent overlap on multiple runs
-    for seq in scene.sequence_editor.sequences_all:
+    # FIX for Blender 5.1 API: Iterate using a list to avoid modification errors
+    for seq in list(scene.sequence_editor.sequences):
         scene.sequence_editor.sequences.remove(seq)
 
     abs_audio_path = os.path.abspath(audio_path)
@@ -59,6 +58,5 @@ def build_scene():
     print(f"✅ Scene successfully compiled and saved to: {output_blend}")
     print("-----------------------------------")
 
-# Execute the function when Blender runs this script
 if __name__ == "__main__":
     build_scene()
