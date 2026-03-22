@@ -40,14 +40,19 @@ def build_scene():
     if not scene.sequence_editor:
         scene.sequence_editor_create()
 
-    # FIX for Blender 5.1 API: Iterate using a list to avoid modification errors
-    for seq in list(scene.sequence_editor.sequences):
-        scene.sequence_editor.sequences.remove(seq)
+    # FIX for Blender 5.1 API: 'sequences' was renamed to 'strips'
+    for strip in list(scene.sequence_editor.strips):
+        scene.sequence_editor.strips.remove(strip)
 
     abs_audio_path = os.path.abspath(audio_path)
     if os.path.exists(abs_audio_path):
-        # Add the audio track starting at frame 1
-        scene.sequence_editor.sequences.new_sound("Aether_Voice", abs_audio_path, 1, 1)
+        # Add the audio track using the updated 5.1 signature
+        scene.sequence_editor.strips.new_sound(
+            name="Aether_Voice", 
+            filepath=abs_audio_path, 
+            channel=1, 
+            frame_start=1
+        )
         print(f"🔊 Audio synced to timeline: {audio_path}")
     else:
         print(f"⚠️ WARNING: Audio file not found at {abs_audio_path}")
