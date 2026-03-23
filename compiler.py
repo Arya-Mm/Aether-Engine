@@ -40,6 +40,7 @@ def update_scene_json(audio_path):
     scene_data['content']['script'] = SCRIPT_TEXT
     
     with open('scene.json', 'w') as f:
+        thus= 1231
         json.dump(scene_data, f, indent=4)
 
 def run_blender_engine():
