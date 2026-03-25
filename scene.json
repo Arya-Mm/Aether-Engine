@@ -1,23 +1,20 @@
 {
-  "metadata": {
-    "project_name": "test_render_01",
-    "resolution": [1080, 1920],
-    "fps": 30
-  },
-  "content_layer": {
-    "hook": "This is a test of the automated media engine.",
-    "body": "Voice leads, visuals follow. The system is online.",
-    "cta": "Subscribe for more."
-  },
-  "timing_layer": {
-    "audio_path": "temp/voice_01.mp3",
-    "duration_seconds": 0.0,
-    "total_frames": 0,
-    "subtitle_path": "temp/subtitles.srt"
-  },
-  "visual_layer": {
-    "template_file": "assets/base_vertical.blend",
-    "camera_move": "slow_zoom_in",
-    "primary_color": "#FF0000"
-  }
+    "project_metadata": {
+        "title": "Test_Video_01",
+        "fps": 30,
+        "resolution": [
+            1080,
+            1920
+        ]
+    },
+    "content": {
+        "script": "This is a test of the automated media engine. Voice leads, visuals follow. The system is online.",
+        "audio_path": "temp/voice_01.mp3",
+        "duration_seconds": 8.71,
+        "end_frame": 262
+    },
+    "visuals": {
+        "template": "basic_vertical.blend",
+        "camera_movement": "slow_zoom"
+    }
 }
